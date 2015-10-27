@@ -44,9 +44,11 @@ sub process {
         'clusters-suffix=s' => \$this->{'clusters_suffix'},
         'AAabbrv-file=s' => \$this->{'AAabbrv_file'},
         'Proximity-files=s' => \$this->{'Proximity_files'},
-        'simulation-number=s' => \$this->{'simulation_number'},
+        'simulation-number=i' => \$this->{'simulation_number'},
 	'help' => \$help,
     );
+    my $NSIMS = $this ->{'simulation_number'};
+
     if ( $help ) { print STDERR help_text(); exit 0; }
     unless( $options ) { die $this->help_text(); }
     
@@ -69,12 +71,13 @@ sub process {
     unless( -d $this->{'Proximity_files'} ) { warn 'You must provide a valid proximity file directory ! ', "\n"; die help_text(); }
     
 #processing procedure
-
+    #my $NSIMS = $this ->{'simulation_number'};
     # parse hupc file
     my ($genesOnPDB_hash_ref, $uniprot2HUGO_hash_ref, $HUGO2uniprot_hash_ref) = $this->processHUPC( $this->{'hupc_file'} );
     #parse aaabbrv file
     my $AA_hash_ref = $this->processAA($this->{'AAabbrv_file'});
     $this ->getDistances($this->{'Proximity_files'}, $genesOnPDB_hash_ref, $HUGO2uniprot_hash_ref, $AA_hash_ref)
+    
 }   
 
 # process HUPC file
@@ -150,7 +153,7 @@ sub getDistances{
                                 	next;
         	                }
 	                        my %clusters;
-
+				
 	                        my $fout = $fclusters.".".$NSIMS."sims.avgDist_pvalue";
 				my $OUT = FileHandle->new( "$fout" , "w" );
 	                        if ( not defined $OUT ) {
