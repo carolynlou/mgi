@@ -39,15 +39,15 @@ sub process {
     $options = GetOptions (
         'hupc-file=s' => \$this->{'hupc_file'},
         'pairwise-prefix=s' => \$this->{'pairwise_prefix'},
-        'pairwise-suffix=s' => \$this->{'pairwise_suffix'},
+        'ptype=s' => \$this->{'ptype'},
         'clusters-prefix=s' => \$this->{'clusters_prefix'},
-        'clusters-suffix=s' => \$this->{'clusters_suffix'},
+        'ctype=s' => \$this->{'ctype'},
         'AAabbrv-file=s' => \$this->{'AAabbrv_file'},
         'Proximity-files=s' => \$this->{'Proximity_files'},
         'simulation-number=i' => \$this->{'simulation_number'},
 	'help' => \$help,
     );
-    my $NSIMS = $this ->{'simulation_number'};
+    #my $NSIMS = $this ->{'simulation_number'};
 
     if ( $help ) { print STDERR help_text(); exit 0; }
     unless( $options ) { die $this->help_text(); }
@@ -71,12 +71,11 @@ sub process {
     unless( -d $this->{'Proximity_files'} ) { warn 'You must provide a valid proximity file directory ! ', "\n"; die help_text(); }
     
 #processing procedure
-    #my $NSIMS = $this ->{'simulation_number'};
     # parse hupc file
     my ($genesOnPDB_hash_ref, $uniprot2HUGO_hash_ref, $HUGO2uniprot_hash_ref) = $this->processHUPC( $this->{'hupc_file'} );
     #parse aaabbrv file
     my $AA_hash_ref = $this->processAA($this->{'AAabbrv_file'});
-    $this ->getDistances($this->{'Proximity_files'}, $genesOnPDB_hash_ref, $HUGO2uniprot_hash_ref, $AA_hash_ref)
+    $this ->getDistances($this->{'Proximity_files'}, $genesOnPDB_hash_ref, $HUGO2uniprot_hash_ref, $AA_hash_ref, $this->{'simulation_number'})
     
 }   
 
@@ -113,9 +112,9 @@ sub processAA {
 }
 
 sub getDistances{
-	my ($this, $proximity_d, $genesOnPDBref, $HUGO2uniprotref, $AAref) = @_;
+	my ($this, $proximity_d, $genesOnPDBref, $HUGO2uniprotref, $AAref, $NSIMS) = @_;
 	foreach my $hugo(keys %$genesOnPDBref){
-		my $uniprot = $HUGO2uniprotref{$hugo};
+		my $uniprot = $HUGO2uniprotref->{$hugo};
 
 		my %distances;
 		my $proxfile = $proximity_d.$uniprot."ProximityFile.csv";
@@ -123,11 +122,11 @@ sub getDistances{
 		while(my $line = <$fh>){
 			chomp $line;
 			my ( $up1 , $chain1 , $res1 , $aa1 , $up2 , $chain2 , $res2 , $aa2 , $dist , $pdb , $pval ) = (split( /\t/ , $line ))[0..2,4,7..9,11,14..16];
-        	        if ( exists $genesOnPDBref{$hugo}{$pdb}{$chain1}
-                	        && exists $genesOnPDBref{$hugo}{$pdb}{$chain2}
+        	        if ( exists $genesOnPDBref->{$hugo}{$pdb}{$chain1}
+                	        && exists $genesOnPDBref->{$hugo}{$pdb}{$chain2}
                         	#&& $chain1 eq $chain2 #specific check to mimic SpacePAC restriction
-                        	&& exists $AAref{$aa1}
-                        	&& exists $AAref{$aa2} ) {
+                        	&& exists $AAref->{$aa1}
+                        	&& exists $AAref->{$aa2} ) {
 	                        push @{$distances{$pdb}{$chain1}} , $dist;
         	        }
         	}$fh -> close();
@@ -139,14 +138,14 @@ sub getDistances{
         	                my $numDistances = scalar( @distances );
 
                 	        #print STDOUT $tossedPairs{$pdb}{$chain}." pairs thrown out\n";
-	                        my $fpairwise = join( "." , ( $pairwisePrefix , $hugo , $pdb , $chain , $ptype ) );
+	                        my $fpairwise = join( "." , ( $this->{'pairwise_prefix'} , $hugo , $pdb , $chain ,$this->{'ptype'} ) );
 	                        my $PAIRWISE = FileHandle->new( "$fpairwise" , "r" );
 	                        if ( not defined $PAIRWISE ) {
         	                        warn "ADSERROR: Could not open/read $fpairwise\n";
                 	                next;
                 	        }
 
-                        	my $fclusters = join( "." , ( $clustersPrefix , $hugo , $pdb , $chain , $ctype ) );
+                        	my $fclusters = join( "." , ($this->{ 'clustersPrefix'} , $hugo , $pdb , $chain ,$this->{'ctype'} ) );
 	                        my $CLUSTERS = FileHandle->new( "$fclusters" , "r" );
         		                if ( not defined $CLUSTERS ) {
                         	        warn "ADSERROR: Could not open/read $fclusters\n";
@@ -183,8 +182,8 @@ sub getDistances{
                                         	my @infos = split( /\|/ , $info );
 	                                        foreach my $dinfo ( @infos ) {
         	                                        my ( $dist , $pdb , $pval ) = split( /\s/ , $dinfo );
-                	                                if ( exists $genesOnPDB{$gene1}{$pdb}{$chain1}
-                        	                                && exists $genesOnPDB{$gene2}{$pdb}{$chain2}
+                	                                if ( exists $genesOnPDBref->{$gene1}{$pdb}{$chain1}
+                        	                                && exists $genesOnPDBref->{$gene2}{$pdb}{$chain2}
                                 	                        && $chain1 eq $chain2 ) { #specific check to mimic SpacePAC restriction
                                         	                my $cluster = $clusters{$gene1}{$mu1};
                                                 	        $mapping{$cluster}{$res1} = 1;
