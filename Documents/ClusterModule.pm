@@ -1,7 +1,7 @@
 package TGI::Mutpro::Main::Proximity;
 #
 #----------------------------------
-# $Authors: Beifang Niu
+# $Authors: Beifang Niu and Carolyn Lou
 # $Date: 2014-01-14 14:34:50 -0500 (Tue Jan 14 14:34:50 CST 2014) $
 # $Revision:  $2015-09-22
 # $URL: $
